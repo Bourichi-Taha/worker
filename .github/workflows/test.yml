@@ -51,23 +51,24 @@ jobs:
     - name: Run Application API
       run: |
         cd as-api
-        npm start
+        pm2 start src/index.js --name "as-api"
     - name: Install Dependencies Explorer
       run: |
         cd as-explorer
         npm install
-        npm run build
+        
     - name: Add Env
       run: |
         cd as-explorer
         echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
         echo "IOS_API=http://localhost:3000" >> .env
+        npm run build
 
 
     - name: Run Application Explorer
       run: |
         cd as-explorer
-        npm run start
+        pm2 start dist/index.js --name "as-explorer"
     - name: Wait for app to be ready
       run: |
         echo "Waiting 15 seconds for app to start..."
