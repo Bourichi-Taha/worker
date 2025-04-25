@@ -41,7 +41,9 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '18'
+        node-version: '20'
+    - name: Install PM2 globally
+      run: npm install pm2 -g
 
     - name: Install Dependencies API
       run: |
