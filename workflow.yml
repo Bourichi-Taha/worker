@@ -1,0 +1,55 @@
+name: Secure Repository Runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  setup-and-run:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get Runner IP
+      id: ip
+      run: |
+        RUNNER_IP=$(curl -s https://api.ipify.org)
+        echo "Runner IP: $RUNNER_IP"
+        echo "RUNNER_IP=$RUNNER_IP" >> $GITHUB_ENV
+        echo "::set-output name=runner_ip::$RUNNER_IP"
+
+    - name: Whitelist Runner IP via API
+      run: |
+        curl -X POST \
+          "https://your-api-endpoint.com/whitelist" \
+          -H "Authorization: Bearer ${{ secrets.API_AUTH_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d '{"ip": "${{ env.RUNNER_IP }}"}'
+
+    - name: Checkout Private Repository
+      uses: actions/checkout@v3
+      with:
+        repository: your-org/your-private-repo
+        token: ${{ secrets.PAT_TOKEN }}  # Personal Access Token with repo access
+        path: ./your-repo
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install Dependencies
+      run: |
+        cd your-repo
+        npm install
+
+    - name: Run Application
+      run: |
+        cd your-repo
+        npm start
+
+    - name: Cleanup - Remove IP from Whitelist
+      if: always()
+      run: |
+        curl -X DELETE \
+          "https://your-api-endpoint.com/whitelist/${{ env.RUNNER_IP }}" \
+          -H "Authorization: Bearer ${{ secrets.API_AUTH_TOKEN }}"
