@@ -57,6 +57,7 @@ jobs:
     - name: Install Dependencies Explorer
       run: |
         cd as-explorer
+        npm install express cors dotenv @types/express @types/cors @types/dotenv
         npm install
         
     - name: Add Env
