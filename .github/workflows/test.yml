@@ -1,0 +1,88 @@
+name: Secure Repository Runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  setup-and-run:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get Runner IP
+      id: ip
+      run: |
+        RUNNER_IP=$(curl -s https://api.ipify.org)
+        echo "Runner IP: $RUNNER_IP"
+        echo "RUNNER_IP=$RUNNER_IP" >> $GITHUB_ENV
+        echo "::set-output name=runner_ip::$RUNNER_IP"
+
+    - name: Whitelist Runner IP via API
+      run: |
+        curl -X POST \
+          "http://100.42.182.147:3030/whitelist" \
+          -H "Authorization: Bearer ${{ secrets.API_AUTH_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d '{"ip": "${{ env.RUNNER_IP }}"}'
+
+    - name: Checkout Private Repository API
+      uses: actions/checkout@v3
+      with:
+        repository: Mobtwin/mobtwin_appstore_api
+        token: ${{ secrets.PAT_TOKEN }}  # Personal Access Token with repo access
+        path: ./as-api
+    - name: Checkout Private Repository Explorer
+      uses: actions/checkout@v3
+      with:
+        repository: Mobtwin/as-explorer-ts
+        token: ${{ secrets.PAT_TOKEN }}  # Personal Access Token with repo access
+        path: ./as-explorer
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install Dependencies API
+      run: |
+        cd as-api
+        npm install
+
+    - name: Run Application API
+      run: |
+        cd as-api
+        npm start
+    - name: Install Dependencies Explorer
+      run: |
+        cd as-explorer
+        npm install
+        npm run build
+    - name: Add Env
+      run: |
+        cd as-explorer
+        echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
+        echo "IOS_API=http://localhost:3000" >> .env
+
+
+    - name: Run Application Explorer
+      run: |
+        cd as-explorer
+        npm run start
+    - name: Wait for app to be ready
+      run: |
+        echo "Waiting 15 seconds for app to start..."
+        sleep 15
+    - name: Start worker
+      run: |
+        curl -X POST http://localhost:8080/start-worker \
+          -H "Content-Type: application/json" \
+          -d '{"type":"charts","workers":1}'
+  
+    
+
+    - name: Cleanup - Remove IP from Whitelist
+      if: always()
+      run: |
+        curl -X DELETE \
+          "https://your-api-endpoint.com/whitelist/${{ env.RUNNER_IP }}" \
+          -H "Authorization: Bearer ${{ secrets.API_AUTH_TOKEN }}"
