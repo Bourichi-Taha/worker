@@ -81,6 +81,9 @@ jobs:
         curl -X POST http://localhost:8080/start-worker \
           -H "Content-Type: application/json" \
           -d '{"type":"charts","workers":1}'
+    - name: Stream Logs
+      run: |
+        pm2 logs -f as-explorer
   
     
 
