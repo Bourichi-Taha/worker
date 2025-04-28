@@ -36,7 +36,7 @@ jobs:
     - name: Allow MongoDB Access
       run: |
         gcloud compute firewall-rules create ${{ secrets.FIREWALL_RULE_NAME }} \
-            --allow=tcp:$MONGODB_PORT \
+            --allow=tcp:${{ secrets.MONGODB_PORT }} \
             --source-ranges=${{ env.RUNNER_IP }}/32 \
             --target-tags=mongodb-server \
             --project=${{ secrets.GCP_PROJECT }} \
