@@ -16,14 +16,31 @@ jobs:
         echo "Runner IP: $RUNNER_IP"
         echo "RUNNER_IP=$RUNNER_IP" >> $GITHUB_ENV
         echo "::set-output name=runner_ip::$RUNNER_IP"
+    # Authenticate with Google Cloud
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
 
-    - name: Whitelist Runner IP via API
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+    # - name: Whitelist Runner IP via API
+    #   run: |
+    #     curl -X POST \
+    #       "http://100.42.182.147:3030/whitelist" \
+    #       -H "Authorization: Bearer ${{ secrets.API_AUTH_TOKEN }}" \
+    #       -H "Content-Type: application/json" \
+    #       -d '{"ip": "${{ env.RUNNER_IP }}"}'
+    
+    # Add firewall rule
+    - name: Allow MongoDB Access
       run: |
-        curl -X POST \
-          "http://100.42.182.147:3030/whitelist" \
-          -H "Authorization: Bearer ${{ secrets.API_AUTH_TOKEN }}" \
-          -H "Content-Type: application/json" \
-          -d '{"ip": "${{ env.RUNNER_IP }}"}'
+        gcloud compute firewall-rules create $FIREWALL_RULE_NAME \
+            --allow=tcp:$MONGODB_PORT \
+            --source-ranges=${{ env.RUNNER_IP }}/32 \
+            --target-tags=mongodb-server \
+            --project=$GCP_PROJECT \
+            --description="Temporary MongoDB access for GitHub Actions"
 
     - name: Checkout Private Repository API
       uses: actions/checkout@v3
@@ -87,9 +104,17 @@ jobs:
   
     
 
-    - name: Cleanup - Remove IP from Whitelist
+    # - name: Cleanup - Remove IP from Whitelist
+    #   if: always()
+    #   run: |
+    #     curl -X DELETE \
+    #       "https://your-api-endpoint.com/whitelist/${{ env.RUNNER_IP }}" \
+    #       -H "Authorization: Bearer ${{ secrets.API_AUTH_TOKEN }}"
+
+    # Remove firewall rule (even if job fails)
+    - name: Remove MongoDB Access
       if: always()
       run: |
-        curl -X DELETE \
-          "https://your-api-endpoint.com/whitelist/${{ env.RUNNER_IP }}" \
-          -H "Authorization: Bearer ${{ secrets.API_AUTH_TOKEN }}"
+        gcloud compute firewall-rules delete $FIREWALL_RULE_NAME \
+            --project=$GCP_PROJECT \
+            --quiet || true
