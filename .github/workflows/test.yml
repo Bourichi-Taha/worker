@@ -31,15 +31,15 @@ jobs:
     #       -H "Authorization: Bearer ${{ secrets.API_AUTH_TOKEN }}" \
     #       -H "Content-Type: application/json" \
     #       -d '{"ip": "${{ env.RUNNER_IP }}"}'
-    
+
     # Add firewall rule
     - name: Allow MongoDB Access
       run: |
-        gcloud compute firewall-rules create $FIREWALL_RULE_NAME \
+        gcloud compute firewall-rules create ${{ env.FIREWALL_RULE_NAME }} \
             --allow=tcp:$MONGODB_PORT \
             --source-ranges=${{ env.RUNNER_IP }}/32 \
             --target-tags=mongodb-server \
-            --project=$GCP_PROJECT \
+            --project=${{ env.GCP_PROJECT }} \
             --description="Temporary MongoDB access for GitHub Actions"
 
     - name: Checkout Private Repository API
@@ -115,6 +115,6 @@ jobs:
     - name: Remove MongoDB Access
       if: always()
       run: |
-        gcloud compute firewall-rules delete $FIREWALL_RULE_NAME \
-            --project=$GCP_PROJECT \
+        gcloud compute firewall-rules delete ${{secrets.FIREWALL_RULE_NAME}} \
+            --project=${{secrets.GCP_PROJECT}} \
             --quiet || true
