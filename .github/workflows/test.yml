@@ -35,11 +35,11 @@ jobs:
     # Add firewall rule
     - name: Allow MongoDB Access
       run: |
-        gcloud compute firewall-rules create ${{ env.FIREWALL_RULE_NAME }} \
+        gcloud compute firewall-rules create ${{ secrets.FIREWALL_RULE_NAME }} \
             --allow=tcp:$MONGODB_PORT \
             --source-ranges=${{ env.RUNNER_IP }}/32 \
             --target-tags=mongodb-server \
-            --project=${{ env.GCP_PROJECT }} \
+            --project=${{ secrets.GCP_PROJECT }} \
             --description="Temporary MongoDB access for GitHub Actions"
 
     - name: Checkout Private Repository API
